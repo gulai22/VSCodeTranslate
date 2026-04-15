@@ -1,16 +1,16 @@
 # VSCode Translate
 
-A VS Code extension that provides bilingual (side-by-side) translation for Markdown files, inspired by [kiss-translator](https://github.com/fishjar/kiss-translator).
+A VS Code extension that translates Markdown files and saves the result as a side-by-side `_zh.md` file, inspired by [kiss-translator](https://github.com/fishjar/kiss-translator).
 
-Open any `.md` file, run the command, and see translations appear below each paragraph/heading — just like bilingual translation in your browser.
+Open any `.md` file, run the command, and a translated version opens next to the original — translations appear in real-time as each batch completes.
 
 ## Features
 
-- **Bilingual preview** — each paragraph, heading, list item, and blockquote shows the original text with a translation directly below it
+- **File-based output** — generates `xxx_zh.md` alongside the original, open both side-by-side
+- **Translation cache** — saves to `xxx.translate.json`, skips unchanged paragraphs on re-run
+- **Incremental display** — see translations fill in block by block, no waiting for the full file
 - **Works with any OpenAI-compatible API** — Zhipu (GLM), DeepSeek, OpenAI, Ollama, etc.
-- **Block-by-block progress** — see translations appear one by one as the API returns results
-- **Toggle translations** — hide/show all translations with one click
-- **Preserves formatting** — code blocks, tables, inline code, and links are left untouched
+- **Smart markdown protection** — image captions are translated, URLs/paths/code are preserved
 
 ## Quick Start
 
@@ -28,17 +28,22 @@ Open VS Code settings (`Ctrl+,`) and set:
 ### 2. Translate
 
 1. Open a `.md` file in VS Code
-2. Press `Ctrl+Shift+P` to open the command palette
-3. Run **"Translate Markdown (Bilingual Preview)"**
-4. A preview panel opens on the right with translations loading block by block
+2. Press `Ctrl+Shift+P` → run **"Translate Markdown (Bilingual Preview)"**
+3. The translated `xxx_zh.md` opens on the right, translations appear as they complete
+4. Run the command again on the same file — cached blocks load instantly, no API cost
 
-### 3. Toggle translations
+### 3. File layout
 
-Click the **"Toggle Translation"** button in the top-right corner of the preview panel, or run **"Toggle Translation Visibility"** from the command palette.
+```
+my-paper/
+├── my-paper.md              # Original
+├── my-paper_zh.md           # Generated translation
+└── my-paper.translate.json  # Translation cache
+```
 
 ## Supported API Providers
 
-Any service that provides an OpenAI-compatible `/chat/completions` endpoint works:
+Any service that provides an OpenAI-compatible `/chat/completions` endpoint:
 
 | Provider | Endpoint | Model |
 |----------|----------|-------|
@@ -51,13 +56,17 @@ Any service that provides an OpenAI-compatible `/chat/completions` endpoint work
 
 ```
 src/
-├── extension.ts        # Command registration and activation
-├── markdownParser.ts   # markdown-it with bilingual wrapper rendering
-├── previewManager.ts   # Webview panel lifecycle and translation orchestration
-└── translator.ts       # OpenAI-compatible API client with retry logic
+├── extension.ts         # Command registration and activation
+├── fileTranslator.ts    # Main workflow: parse → cache → translate → write
+├── markdownParser.ts    # Split markdown into text/code segments
+├── translator.ts        # OpenAI-compatible API client with URL protection
+└── translationCache.ts  # JSON-based cache keyed by text hash
 ```
 
-The extension uses a markdown-it plugin to wrap each translatable block in bilingual containers, then sends the extracted text to the translation API and streams results back to the webview.
+- Markdown is split into segments by blank lines; code blocks are skipped
+- Image/link URLs are replaced with placeholders before translation, restored after — so `![caption](path)` gets the caption translated but the path preserved
+- Consecutive text segments are batched (~3000 chars) to reduce API calls
+- After each batch, the editor content updates in-place via `TextEditor.edit()`
 
 ## Development
 

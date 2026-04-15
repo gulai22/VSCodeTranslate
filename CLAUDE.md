@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-VSCode Translate — a VS Code extension that provides bilingual (side-by-side) translation for Markdown files, similar to kiss-translator. Uses OpenAI-compatible APIs for translation.
+VSCode Translate — a VS Code extension that translates Markdown files via OpenAI-compatible APIs. Generates `xxx_zh.md` alongside the original, with translation caching and incremental display.
 
 ## Build & Develop
 
 ```bash
 npm install              # Install dependencies
 npm run compile          # Production build (esbuild → dist/extension.js)
-npm run watch            # Development build with watch mode + sourcemaps
+npm run watch            # Dev build with watch + sourcemaps
 npm run lint             # TypeScript type check (tsc --noEmit)
 ```
 
@@ -19,17 +19,18 @@ To test: F5 in VS Code opens Extension Development Host. Open a .md file, run "T
 
 ## Architecture
 
-- **`src/extension.ts`** — Extension entry point. Registers `vscodeTranslate.translate` and `toggleTranslation` commands. Activates on `onLanguage:markdown`.
-- **`src/previewManager.ts`** — Creates and manages Webview panels. Orchestrates the render → translate → stream pipeline. Contains all HTML/CSS/JS for the webview (inline template).
-- **`src/markdownParser.ts`** — Uses markdown-it with custom renderer rules to wrap each translatable block (headings, paragraphs, list items) in `<div class="bilingual-block">` containers. `extractTextBlocks()` recovers plain text from the rendered HTML for API calls.
-- **`src/translator.ts`** — OpenAI-compatible API client. Batches blocks into requests (~2000 chars each). Uses native `http`/`https` modules (no fetch dependency).
+- **`src/extension.ts`** — Entry point. Registers `vscodeTranslate.translate` command. Activates on `onLanguage:markdown`.
+- **`src/fileTranslator.ts`** — Main workflow: parse → check cache → translate batches → update editor in-place via `TextEditor.edit()`. Groups consecutive segments into ~3000 char batches.
+- **`src/markdownParser.ts`** — Splits markdown into `Segment[]` by blank lines. Code blocks are marked `type: "code"` and skipped. `reassembleMarkdown()` joins segments back with translations.
+- **`src/translator.ts`** — API client with retry (2 retries, exponential backoff). `protect()` replaces image/link URLs with `__URL0__` placeholders before translation, `restore()` puts them back after. This ensures `![caption](path)` gets the caption translated but the path preserved.
+- **`src/translationCache.ts`** — JSON file (`xxx.translate.json`) keyed by hash of original text. On re-run, only uncached/changed paragraphs are sent to the API.
 
 ## Key Design Decisions
 
-- Webview panel (not `previewScripts`) — full control over async translation lifecycle, streaming updates, and DOM manipulation.
-- Translation is non-streaming per batch (single API call per batch), but results are streamed to the webview block-by-block as each batch completes.
-- Translation blocks are identified by `data-id` attributes in the rendered HTML, matched between parser extraction and webview DOM updates.
-- Bundled with esbuild (markdown-it is bundled in, vscode is external).
+- File-based output (`xxx_zh.md`) instead of webview — simpler, persists across sessions, works with git diff
+- Editor updated in-place via `TextEditor.edit()` — no file-reload dialogs
+- Single-pass regex `(!?)\[...\](...)` handles both images and links to avoid re-matching
+- No external markdown-it dependency — segments are split by blank lines, keeping the parser lightweight
 
 ## Settings
 
