@@ -2,3 +2,10 @@ node_modules/
 dist/
 *.vsix
 .vscode/
+
+# Generated translation files
+*_zh.md
+*.translate.json
+
+# Test fixtures
+test/

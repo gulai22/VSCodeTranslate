@@ -1,9 +1,22 @@
 {
   "name": "vscode-translate",
   "displayName": "VSCode Translate",
-  "description": "Bilingual translation for Markdown files in VS Code, similar to kiss-translator",
+  "description": "Translate Markdown files side-by-side using any OpenAI-compatible API. Generates xxx_zh.md with bilingual view, caching, and incremental display.",
   "version": "0.1.0",
   "publisher": "vscode-translate",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "translate",
+    "markdown",
+    "bilingual",
+    "chinese",
+    "openai",
+    "deepseek"
+  ],
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -61,7 +74,8 @@
   "scripts": {
     "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18",
     "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --watch --sourcemap",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
