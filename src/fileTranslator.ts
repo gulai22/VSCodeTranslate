@@ -80,44 +80,49 @@ export async function translateFile(document: vscode.TextDocument) {
     }
   }
 
-  // Step 1: Write initial file with cached translations + original text
+  // Write initial file and open editor (non-blocking for translation)
   const initialContent = reassembleMarkdown(segments, translations);
   fs.writeFileSync(translatedPath, initialContent, "utf8");
 
-  // Step 2: Open it immediately
-  const doc = await vscode.workspace.openTextDocument(translatedUri);
-  const editor = await vscode.window.showTextDocument(doc, {
-    viewColumn: vscode.ViewColumn.Two,
-    preserveFocus: true,
-  });
+  const batches = groupIntoBatches(pending, BATCH_SIZE);
 
   if (pending.length === 0) {
+    const doc = await vscode.workspace.openTextDocument(translatedUri);
+    await vscode.window.showTextDocument(doc, {
+      viewColumn: vscode.ViewColumn.Two,
+      preserveFocus: true,
+    });
     vscode.window.showInformationMessage("All translations loaded from cache.");
     return;
   }
 
-  // Step 3: Group into batches and translate incrementally
-  const batches = groupIntoBatches(pending, BATCH_SIZE);
-
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "Translating",
+      title: "Translate",
       cancellable: true,
     },
     async (progress, token) => {
+      // Open editor while showing progress
+      progress.report({ message: "Preparing..." });
+      const doc = await vscode.workspace.openTextDocument(translatedUri);
+      const editor = await vscode.window.showTextDocument(doc, {
+        viewColumn: vscode.ViewColumn.Two,
+        preserveFocus: true,
+      });
+
       for (let b = 0; b < batches.length; b++) {
         if (token.isCancellationRequested) break;
 
         const batch = batches[b];
-        try {
-          // Translate the whole batch as one request
-          const translated = await translateText(batch.content, options);
+        progress.report({
+          message: `${b + 1} / ${batches.length}`,
+        });
 
-          // Split translated text back by blank lines
+        try {
+          const translated = await translateText(batch.content, options);
           const parts = translated.split(/\n{2,}/);
 
-          // Map back to individual segment indices
           for (let j = 0; j < batch.indices.length; j++) {
             const segIdx = batch.indices[j];
             if (j < parts.length && parts[j].trim()) {
@@ -126,7 +131,6 @@ export async function translateFile(document: vscode.TextDocument) {
             }
           }
         } catch {
-          // Fallback: translate segments individually
           for (const segIdx of batch.indices) {
             try {
               const result = await translateText(
@@ -141,23 +145,20 @@ export async function translateFile(document: vscode.TextDocument) {
           }
         }
 
-        // Update editor after each batch
         await updateEditor(editor, segments, translations);
 
-        progress.report({
-          message: `${b + 1} / ${batches.length} batches`,
-          increment: (1 / batches.length) * 100,
-        });
+        // Save cache after each batch so progress survives cancellation
+        cache.save();
+        fs.writeFileSync(
+          translatedPath,
+          reassembleMarkdown(segments, translations),
+          "utf8"
+        );
 
         if (b + 1 < batches.length) {
           await sleep(100);
         }
       }
-
-      // Final save
-      cache.save();
-      const finalContent = reassembleMarkdown(segments, translations);
-      fs.writeFileSync(translatedPath, finalContent, "utf8");
     }
   );
 }
