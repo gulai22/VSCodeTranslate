@@ -19,9 +19,19 @@
       {
         "command": "vscodeTranslate.translate",
         "title": "Translate Markdown (Bilingual Preview)",
-        "category": "Translate"
+        "category": "Translate",
+        "icon": "$(globe)"
       }
     ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "vscodeTranslate.translate",
+          "when": "resourceLangId == markdown",
+          "group": "navigation"
+        }
+      ]
+    },
     "configuration": {
       "title": "VSCode Translate",
       "properties": {
