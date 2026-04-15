@@ -1,11 +1,7 @@
 import * as vscode from "vscode";
-import { PreviewManager } from "./previewManager";
-
-let previewManager: PreviewManager;
+import { translateFile } from "./fileTranslator";
 
 export function activate(context: vscode.ExtensionContext) {
-  previewManager = new PreviewManager();
-
   const translateCmd = vscode.commands.registerCommand(
     "vscodeTranslate.translate",
     () => {
@@ -21,18 +17,11 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      previewManager.showPreview(doc);
+      translateFile(doc);
     }
   );
 
-  const toggleCmd = vscode.commands.registerCommand(
-    "vscodeTranslate.toggleTranslation",
-    () => {
-      previewManager.toggleActive();
-    }
-  );
-
-  context.subscriptions.push(translateCmd, toggleCmd);
+  context.subscriptions.push(translateCmd);
 }
 
 export function deactivate() {}

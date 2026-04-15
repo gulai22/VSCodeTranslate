@@ -20,11 +20,6 @@
         "command": "vscodeTranslate.translate",
         "title": "Translate Markdown (Bilingual Preview)",
         "category": "Translate"
-      },
-      {
-        "command": "vscodeTranslate.toggleTranslation",
-        "title": "Toggle Translation Visibility",
-        "category": "Translate"
       }
     ],
     "configuration": {
