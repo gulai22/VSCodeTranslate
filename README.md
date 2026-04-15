@@ -28,7 +28,7 @@ Open VS Code settings (`Ctrl+,`) and set:
 ### 2. Translate
 
 1. Open a `.md` file in VS Code
-2. Press `Ctrl+Shift+P` → run **"Translate Markdown (Bilingual Preview)"**
+2. Click the **zh** button in the editor title bar, or press `Ctrl+Shift+P` → run **"Translate Markdown (Bilingual Preview)"**
 3. The translated `xxx_zh.md` opens on the right, translations appear as they complete
 4. Run the command again on the same file — cached blocks load instantly, no API cost
 

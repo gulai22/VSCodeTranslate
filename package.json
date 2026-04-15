@@ -20,7 +20,7 @@
         "command": "vscodeTranslate.translate",
         "title": "Translate Markdown (Bilingual Preview)",
         "category": "Translate",
-        "icon": "$(globe)"
+        "icon": "resources/icon.svg"
       }
     ],
     "menus": {
