@@ -2,9 +2,10 @@
   "name": "md-translate-ai",
   "displayName": "Markdown AI Translate",
   "description": "Translate Markdown files side-by-side using any OpenAI-compatible API. Generates xxx_zh.md with bilingual view, caching, and incremental display.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "Gulai",
   "license": "MIT",
+  "icon": "resources/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/gulai22/VSCodeTranslate"
