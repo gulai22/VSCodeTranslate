@@ -1,0 +1,10 @@
+.vscode/**
+src/**
+test/**
+node_modules/**
+.gitignore
+tsconfig.json
+CLAUDE.md
+*.translate.json
+*_zh.md
+markdown-translate-*.vsix
