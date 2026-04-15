@@ -1,0 +1,71 @@
+{
+  "name": "vscode-translate",
+  "displayName": "VSCode Translate",
+  "description": "Bilingual translation for Markdown files in VS Code, similar to kiss-translator",
+  "version": "0.1.0",
+  "publisher": "vscode-translate",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscodeTranslate.translate",
+        "title": "Translate Markdown (Bilingual Preview)",
+        "category": "Translate"
+      },
+      {
+        "command": "vscodeTranslate.toggleTranslation",
+        "title": "Toggle Translation Visibility",
+        "category": "Translate"
+      }
+    ],
+    "configuration": {
+      "title": "VSCode Translate",
+      "properties": {
+        "vscodeTranslate.apiEndpoint": {
+          "type": "string",
+          "default": "https://api.openai.com/v1",
+          "description": "OpenAI compatible API endpoint (e.g. https://api.deepseek.com/v1)"
+        },
+        "vscodeTranslate.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for the translation service"
+        },
+        "vscodeTranslate.model": {
+          "type": "string",
+          "default": "gpt-4o-mini",
+          "description": "Model name (e.g. gpt-4o-mini, deepseek-chat)"
+        },
+        "vscodeTranslate.targetLanguage": {
+          "type": "string",
+          "default": "Chinese",
+          "description": "Target language for translation (e.g. Chinese, Japanese, Korean)"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --watch --sourcemap",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "markdown-it": "^14.0.0"
+  }
+}
