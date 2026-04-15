@@ -1,5 +1,5 @@
 {
-  "name": "markdown-translate",
+  "name": "md-translate",
   "displayName": "Markdown Translate",
   "description": "Translate Markdown files side-by-side using any OpenAI-compatible API. Generates xxx_zh.md with bilingual view, caching, and incremental display.",
   "version": "0.1.0",
