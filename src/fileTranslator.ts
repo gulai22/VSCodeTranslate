@@ -5,7 +5,7 @@ import { translateText, TranslateOptions } from "./translator";
 import { TranslationCache } from "./translationCache";
 
 /** Max characters per batch sent to the API */
-const BATCH_SIZE = 3000;
+const BATCH_SIZE = 4000;
 
 /** Group consecutive pending segments into batches */
 function groupIntoBatches(
@@ -64,7 +64,6 @@ export async function translateFile(document: vscode.TextDocument) {
   const segments = splitMarkdown(content);
   const cache = new TranslationCache(document.uri);
 
-  // Identify which text segments need translation
   const pending: { index: number; content: string }[] = [];
   const translations = new Map<number, string>();
 
@@ -80,9 +79,12 @@ export async function translateFile(document: vscode.TextDocument) {
     }
   }
 
-  // Write initial file and open editor (non-blocking for translation)
-  const initialContent = reassembleMarkdown(segments, translations);
-  fs.writeFileSync(translatedPath, initialContent, "utf8");
+  // Write initial file
+  fs.writeFileSync(
+    translatedPath,
+    reassembleMarkdown(segments, translations),
+    "utf8"
+  );
 
   const batches = groupIntoBatches(pending, BATCH_SIZE);
 
@@ -92,7 +94,9 @@ export async function translateFile(document: vscode.TextDocument) {
       viewColumn: vscode.ViewColumn.Two,
       preserveFocus: true,
     });
-    vscode.window.showInformationMessage("All translations loaded from cache.");
+    vscode.window.showInformationMessage(
+      "All translations loaded from cache."
+    );
     return;
   }
 
@@ -103,62 +107,69 @@ export async function translateFile(document: vscode.TextDocument) {
       cancellable: true,
     },
     async (progress, token) => {
-      // Open editor while showing progress
-      progress.report({ message: "Preparing..." });
+      // Open editor
       const doc = await vscode.workspace.openTextDocument(translatedUri);
       const editor = await vscode.window.showTextDocument(doc, {
         viewColumn: vscode.ViewColumn.Two,
         preserveFocus: true,
       });
 
-      for (let b = 0; b < batches.length; b++) {
-        if (token.isCancellationRequested) break;
+      let completed = 0;
 
-        const batch = batches[b];
-        progress.report({
-          message: `${b + 1} / ${batches.length}`,
-        });
-
-        try {
-          const translated = await translateText(batch.content, options);
-          const parts = translated.split(/\n{2,}/);
-
-          for (let j = 0; j < batch.indices.length; j++) {
-            const segIdx = batch.indices[j];
-            if (j < parts.length && parts[j].trim()) {
-              translations.set(segIdx, parts[j].trim());
-              cache.set(segments[segIdx].content, parts[j].trim());
+      // Fire ALL batches concurrently — each writes results to translations map
+      const tasks = batches.map((batch) =>
+        translateText(batch.content, options).then(
+          (translated) => {
+            const parts = translated.split(/\n{2,}/);
+            for (let k = 0; k < batch.indices.length; k++) {
+              const segIdx = batch.indices[k];
+              if (k < parts.length && parts[k].trim()) {
+                translations.set(segIdx, parts[k].trim());
+                cache.set(segments[segIdx].content, parts[k].trim());
+              }
             }
+            completed++;
+          },
+          () => {
+            // Fallback: translate segments individually
+            return Promise.allSettled(
+              batch.indices.map((segIdx) =>
+                translateText(segments[segIdx].content, options).then((r) => {
+                  translations.set(segIdx, r);
+                  cache.set(segments[segIdx].content, r);
+                })
+              )
+            ).finally(() => completed++);
           }
-        } catch {
-          for (const segIdx of batch.indices) {
-            try {
-              const result = await translateText(
-                segments[segIdx].content,
-                options
-              );
-              translations.set(segIdx, result);
-              cache.set(segments[segIdx].content, result);
-            } catch {
-              // Skip failed segment
-            }
-          }
-        }
+        )
+      );
 
+      // Refresh editor every 300ms with whatever's been translated so far
+      const refreshInterval = setInterval(async () => {
+        if (token.isCancellationRequested) return;
         await updateEditor(editor, segments, translations);
-
-        // Save cache after each batch so progress survives cancellation
         cache.save();
         fs.writeFileSync(
           translatedPath,
           reassembleMarkdown(segments, translations),
           "utf8"
         );
+        progress.report({ message: `${completed} / ${batches.length}` });
+      }, 300);
 
-        if (b + 1 < batches.length) {
-          await sleep(100);
-        }
-      }
+      // Wait for all batches to finish
+      await Promise.all(tasks);
+      clearInterval(refreshInterval);
+
+      // Final update
+      await updateEditor(editor, segments, translations);
+      cache.save();
+      fs.writeFileSync(
+        translatedPath,
+        reassembleMarkdown(segments, translations),
+        "utf8"
+      );
+      progress.report({ message: `${completed} / ${batches.length}` });
     }
   );
 }
@@ -175,8 +186,4 @@ async function updateEditor(
     doc.positionAt(doc.getText().length)
   );
   await editor.edit((builder) => builder.replace(fullRange, newContent));
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
