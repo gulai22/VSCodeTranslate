@@ -1,9 +1,9 @@
 {
-  "name": "vscode-translate",
-  "displayName": "VSCode Translate",
+  "name": "markdown-translate",
+  "displayName": "Markdown Translate",
   "description": "Translate Markdown files side-by-side using any OpenAI-compatible API. Generates xxx_zh.md with bilingual view, caching, and incremental display.",
   "version": "0.1.0",
-  "publisher": "vscode-translate",
+  "publisher": "",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,10 +12,12 @@
   "keywords": [
     "translate",
     "markdown",
+    "translation",
     "bilingual",
     "chinese",
     "openai",
-    "deepseek"
+    "deepseek",
+    "llm"
   ],
   "engines": {
     "vscode": "^1.85.0"
