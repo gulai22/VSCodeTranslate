@@ -8,3 +8,8 @@ CLAUDE.md
 *.translate.json
 *_zh.md
 markdown-translate-*.vsix
+md-translate-ai-*.vsix
+resources/icon1.png
+resources/icon2.png
+resources/icon.svg
+resources/Gemini_Generated_Image_y8czcxy8czcxy8cz.png
